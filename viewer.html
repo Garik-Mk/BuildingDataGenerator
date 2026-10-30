@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planroom | Sample Viewer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c2925;
+      --muted: #71807a;
+      --line: #dce3dd;
+      --paper: #f3f5f0;
+      --white: #fff;
+      --forest: #16483d;
+      --forest-dark: #10392f;
+      --coral: #e56c4a;
+      --teal: #1e9b91;
+      --blue: #477ed1;
+      --violet: #9071c9;
+      --lime: #719c47;
+      --gold: #c8982e;
+      --shadow: 0 16px 42px rgba(27, 46, 39, .09);
+      font-family: "Aptos", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; }
+    button, select { font: inherit; }
+
+    .topbar {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 28px;
+      color: #f8fbf8;
+      background: var(--forest-dark);
+      border-bottom: 3px solid #d5a856;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 230px; }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.55);
+      color: #f2c578;
+      font: 20px Georgia, serif;
+    }
+    .brand-name { font: 20px Georgia, serif; letter-spacing: .02em; }
+    .brand-subtitle { margin-top: 2px; color: #b6c7bf; font: 10px "Aptos", sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+    .top-meta { color: #c8d6cf; font: 12px "Aptos", sans-serif; }
+
+    .app {
+      height: calc(100vh - 71px);
+      min-height: 620px;
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      overflow: auto;
+      padding: 23px 20px 28px;
+      background: #fbfcf9;
+      border-right: 1px solid var(--line);
+    }
+    .eyebrow { color: var(--forest); font-size: 10px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 7px 0 4px; font: 27px/1.1 Georgia, serif; font-weight: 400; }
+    .intro { margin: 0 0 22px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    .sample-picker { display: grid; grid-template-columns: 36px 1fr 36px; gap: 7px; margin-bottom: 14px; }
+    .icon-button, .select-control, .mode-button {
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--ink);
+      background: var(--white);
+    }
+    .icon-button { display: grid; place-items: center; cursor: pointer; }
+    .icon-button:hover, .mode-button:hover { border-color: #9cad9f; background: #f4f7f3; }
+    .icon-button:focus-visible, select:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid #d6a64f; outline-offset: 2px; }
+    .icon-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+    .select-control { width: 100%; padding: 0 9px; font-size: 12px; }
+
+    .mode-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; margin-bottom: 22px; background: #edf1ec; border-radius: 5px; }
+    .mode-button { height: 31px; border-color: transparent; background: transparent; font-size: 11px; cursor: pointer; }
+    .mode-button[aria-pressed="true"] { color: var(--forest-dark); border-color: #d8e1da; background: white; box-shadow: 0 1px 3px #1c29251a; font-weight: 700; }
+
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 9px; margin: 0 0 4px; border-bottom: 1px solid var(--line); }
+    .section-heading h2 { margin: 0; font: 16px Georgia, serif; font-weight: 400; }
+    .text-button { padding: 0; border: 0; color: var(--forest); background: none; font-size: 10px; font-weight: 700; cursor: pointer; }
+    .layer-list { display: grid; gap: 1px; margin: 7px 0 21px; }
+    .layer-row { min-height: 32px; display: flex; align-items: center; gap: 9px; color: #34443d; font-size: 12px; cursor: pointer; }
+    .layer-row input { width: 14px; height: 14px; margin: 0; accent-color: var(--forest); }
+    .swatch { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 2px; }
+    .layer-count { margin-left: auto; color: #87958e; font: 10px "Consolas", monospace; }
+
+    .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 13px 0 17px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .stat-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .stat-value { margin-top: 3px; font: 19px Georgia, serif; }
+    .detail-block { padding-top: 17px; }
+    .detail-title { margin: 0 0 8px; color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+    .detail-content { min-height: 44px; color: #44524c; font-size: 12px; line-height: 1.55; }
+    .detail-content strong { color: var(--ink); font-weight: 650; }
+    .empty-selection { color: #87958e; font-style: italic; }
+
+    .workspace { min-width: 0; display: flex; flex-direction: column; padding: 18px 22px 20px; }
+    .workspace-head { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 13px; }
+    .sample-title { min-width: 0; }
+    .sample-id { font: 18px Georgia, serif; }
+    .sample-sub { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .toolbar { display: flex; align-items: center; gap: 6px; }
+    .toolbar .icon-button { width: 34px; height: 32px; }
+    .model-placeholder { height: 32px; padding: 0 10px; border: 1px dashed #aebdb3; border-radius: 4px; color: #78877f; background: #f7f9f6; font-size: 11px; white-space: nowrap; }
+    .model-placeholder:disabled { cursor: not-allowed; opacity: .8; }
+    .zoom-readout { width: 44px; color: #57665f; text-align: center; font: 11px "Consolas", monospace; }
+    .divider { height: 20px; width: 1px; margin: 0 3px; background: var(--line); }
+
+    .stage {
+      min-height: 0;
+      flex: 1;
+      position: relative;
+      display: grid;
+      place-items: center;
+      overflow: auto;
+      padding: 26px;
+      border: 1px solid #d7dfd8;
+      border-radius: 5px;
+      background-color: #e9eee8;
+      background-image: radial-gradient(#bdc9c0 0.7px, transparent .7px);
+      background-size: 17px 17px;
+      box-shadow: inset 0 1px 5px #1c29250b;
+    }
+    .canvas-wrap { position: relative; flex: none; line-height: 0; box-shadow: var(--shadow); background: #fff; transition: width .18s ease, height .18s ease; }
+    canvas { display: block; max-width: none; cursor: crosshair; }
+    .loading, .error-state { position: absolute; inset: 0; display: grid; place-content: center; gap: 9px; color: #5e6f66; background: #edf1ec; text-align: center; font-size: 13px; }
+    .loading[hidden], .error-state[hidden] { display: none; }
+    .error-state { color: #923d2d; }
+    .status-line { height: 27px; display: flex; align-items: end; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 10px; }
+    .status-line span:last-child { font-family: "Consolas", monospace; }
+    .tooltip { position: fixed; z-index: 5; max-width: 260px; padding: 7px 9px; color: #fff; border-radius: 3px; background: #172a24; box-shadow: 0 5px 16px #0e201a2b; pointer-events: none; font-size: 11px; line-height: 1.4; }
+    .tooltip[hidden] { display: none; }
+
+    @media (max-width: 880px) {
+      .app { height: auto; min-height: calc(100vh - 71px); grid-template-columns: 250px minmax(0, 1fr); }
+      .workspace { min-height: 68vh; padding: 14px; }
+      .sidebar { padding: 18px 15px; }
+    }
+    @media (max-width: 640px) {
+      .topbar { min-height: 60px; padding: 0 15px; }
+      .top-meta { display: none; }
+      .app { display: flex; flex-direction: column; }
+      .sidebar { overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+      .sidebar-head { display: grid; grid-template-columns: 1fr auto; align-items: end; column-gap: 12px; }
+      .sidebar-head .eyebrow, .sidebar-head h1, .sidebar-head .intro { grid-column: 1; }
+      .sample-picker { grid-column: 2; grid-row: 1 / span 3; width: 178px; margin: 0; }
+      .mode-switch { max-width: 320px; margin: 12px 0 15px; }
+      .layer-list { grid-template-columns: 1fr 1fr; column-gap: 12px; }
+      .summary { max-width: 400px; }
+      .detail-block { display: none; }
+      .workspace { min-height: 65vh; padding: 12px; }
+      .workspace-head { align-items: flex-start; }
+      .stage { min-height: 430px; padding: 12px; }
+      .toolbar { gap: 3px; }
+      .toolbar .icon-button { width: 30px; }
+      .zoom-readout { width: 37px; }
+    }
+    @media (max-width: 390px) {
+      .sidebar-head { display: block; }
+      .sample-picker { width: 100%; margin-top: 12px; }
+      .workspace-head { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">P</div>
+      <div>
+        <div class="brand-name">Planroom</div>
+        <div class="brand-subtitle">Dataset inspection</div>
+      </div>
+    </div>
+    <div class="top-meta">SYNTHETIC FLOORPLANS&nbsp; / &nbsp;ANNOTATION REVIEW</div>
+  </header>
+
+  <main class="app">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="eyebrow">Sample browser</div>
+        <h1>Floorplans</h1>
+        <p class="intro">Images with their annotation layers, side by side.</p>
+        <div class="sample-picker" aria-label="Choose sample">
+          <button class="icon-button" id="previous" type="button" title="Previous sample" aria-label="Previous sample">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <select class="select-control" id="sampleSelect" aria-label="Sample"></select>
+          <button class="icon-button" id="next" type="button" title="Next sample" aria-label="Next sample">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="mode-switch" aria-label="Image version">
+        <button class="mode-button" data-mode="clean" type="button" aria-pressed="true">Clean</button>
+        <button class="mode-button" data-mode="images" type="button" aria-pressed="false">Scanned</button>
+        <button class="mode-button" data-mode="wall_masks" type="button" aria-pressed="false">Wall mask</button>
+      </div>
+
+      <div class="section-heading">
+        <h2>Annotations</h2>
+        <button class="text-button" id="toggleAll" type="button">Hide all</button>
+      </div>
+      <div class="layer-list" id="layerList"></div>
+
+      <div class="summary" id="summary" aria-live="polite"></div>
+
+      <section class="detail-block">
+        <h2 class="detail-title">Selected annotation</h2>
+        <div class="detail-content" id="selectionInfo"><span class="empty-selection">Select a box in the drawing.</span></div>
+      </section>
+      <section class="detail-block">
+        <h2 class="detail-title">Plan details</h2>
+        <div class="detail-content" id="planInfo"></div>
+      </section>
+    </aside>
+
+    <section class="workspace" aria-label="Floorplan canvas">
+      <div class="workspace-head">
+        <div class="sample-title">
+          <div class="sample-id" id="currentName">Loading sample</div>
+          <div class="sample-sub" id="imageMeta">Preparing annotation data</div>
+        </div>
+        <div class="toolbar" aria-label="Canvas controls">
+          <button class="icon-button" id="zoomOut" type="button" title="Zoom out" aria-label="Zoom out">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.5"/><path d="M6.8 10.8h8M16 16l4.2 4.2"/></svg>
+          </button>
+          <span class="zoom-readout" id="zoomReadout">Fit</span>
+          <button class="icon-button" id="zoomIn" type="button" title="Zoom in" aria-label="Zoom in">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.5"/><path d="M6.8 10.8h8m-4-4v8M16 16l4.2 4.2"/></svg>
+          </button>
+          <span class="divider" aria-hidden="true"></span>
+          <button class="icon-button" id="fit" type="button" title="Fit drawing to view" aria-label="Fit drawing to view">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path d="M9 9 4 4m11 5 5-5m-5 11 5 5m-11-5-5 5"/></svg>
+          </button>
+          <button class="model-placeholder" id="modelResults" type="button" disabled title="Model output placeholder">Model results</button>
+        </div>
+      </div>
+      <div class="stage" id="stage">
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="planCanvas" aria-label="Floorplan with annotation boxes"></canvas>
+        </div>
+        <div class="loading" id="loading">Loading sample…</div>
+        <div class="error-state" id="errorState" hidden></div>
+      </div>
+      <div class="status-line">
+        <span id="statusText">Ready</span>
+        <span id="coordinateText">x — &nbsp; y —</span>
+      </div>
+    </section>
+  </main>
+  <div class="tooltip" id="tooltip" hidden></div>
+
+  <script>
+    (() => {
+      const sampleCount = 20;
+      const layers = [
+        { key: "building", label: "Building outline", color: "#263b34" },
+        { key: "apartments", label: "Apartments", color: "#1e9b91" },
+        { key: "shared_access_halls", label: "Shared access hall", color: "#477467" },
+        { key: "common_cores", label: "Stairwell cores", color: "#476b60" },
+        { key: "rooms", label: "Rooms", color: "#e56c4a" },
+        { key: "doors", label: "Doors", color: "#9071c9" },
+        { key: "access_doors", label: "Hall access doors", color: "#cf7d37" },
+        { key: "core_doors", label: "Core doors", color: "#bb7735" },
+        { key: "entrances", label: "Entrances", color: "#c35b38" },
+        { key: "windows", label: "Windows", color: "#477ed1" },
+        { key: "balconies", label: "Balconies", color: "#719c47" },
+        { key: "porches", label: "Porches", color: "#9b8a62" },
+        { key: "ladders", label: "Ladders", color: "#c8982e" },
+        { key: "stairs", label: "Stairs", color: "#537d7a" },
+      ];
+      const state = {
+        index: 0,
+        mode: "clean",
+        annotation: null,
+        image: null,
+        zoom: 1,
+        fitted: true,
+        showLabels: true,
+        activeLayers: new Set(layers.map(layer => layer.key)),
+        items: [],
+        selected: null,
+        hovered: null,
+      };
+      let loadToken = 0;
+
+      const canvas = document.getElementById("planCanvas");
+      const ctx = canvas.getContext("2d");
+      const canvasWrap = document.getElementById("canvasWrap");
+      const stage = document.getElementById("stage");
+      const sampleSelect = document.getElementById("sampleSelect");
+      const tooltip = document.getElementById("tooltip");
+      const layerList = document.getElementById("layerList");
+
+      const pad = value => String(value).padStart(5, "0");
+      const sampleId = index => `floorplan_${pad(index)}`;
+
+      for (let index = 0; index < sampleCount; index += 1) {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = sampleId(index);
+        sampleSelect.append(option);
+      }
+
+      function buildLayerControls() {
+        for (const layer of layers) {
+          const label = document.createElement("label");
+          label.className = "layer-row";
+          label.innerHTML = `<input type="checkbox" checked data-layer="${layer.key}"><span class="swatch" style="background:${layer.color}"></span><span>${layer.label}</span><span class="layer-count" data-count="${layer.key}">—</span>`;
+          layerList.append(label);
+        }
+
+        layerList.addEventListener("change", event => {
+          const input = event.target.closest("input[data-layer]");
+          if (!input) return;
+          if (input.checked) state.activeLayers.add(input.dataset.layer);
+          else state.activeLayers.delete(input.dataset.layer);
+          updateToggleAllLabel();
+          draw();
+        });
+      }
+
+      function setError(message) {
+        document.getElementById("errorState").textContent = message;
+        document.getElementById("errorState").hidden = false;
+        document.getElementById("loading").hidden = true;
+        document.getElementById("statusText").textContent = "Could not load sample";
+      }
+
+      async function loadSample(index) {
+        const requestToken = ++loadToken;
+        state.index = (index + sampleCount) % sampleCount;
+        const mode = state.mode;
+        state.annotation = null;
+        state.image = null;
+        state.selected = null;
+        tooltip.hidden = true;
+        document.getElementById("errorState").hidden = true;
+        document.getElementById("loading").hidden = false;
+        document.getElementById("loading").textContent = "Loading sample…";
+        document.getElementById("statusText").textContent = "Loading annotation and image";
+        sampleSelect.value = String(state.index);
+        document.getElementById("currentName").textContent = sampleId(state.index);
+        document.getElementById("selectionInfo").innerHTML = '<span class="empty-selection">Select a box in the drawing.</span>';
+
+        const id = sampleId(state.index);
+        try {
+          const [response, image] = await Promise.all([
+            fetch(`synthetic_floorplans/annotations/${id}.json`),
+            loadImage(id, mode),
+          ]);
+          if (!response.ok) throw new Error(`Annotation request returned ${response.status}`);
+          const annotation = await response.json();
+          if (requestToken !== loadToken) return;
+          state.annotation = annotation;
+          state.image = image;
+          updateMetadata();
+          resizeCanvas();
+          draw();
+          document.getElementById("loading").hidden = true;
+          document.getElementById("statusText").textContent = "Sample loaded";
+        } catch (error) {
+          if (requestToken === loadToken) {
+            setError(`Unable to load ${id}. Start the viewer from the project folder and confirm the sample files exist. (${error.message})`);
+          }
+        }
+      }
+
+      function loadImage(id, mode) {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          const extension = mode === "images" ? "jpg" : "png";
+          const folder = mode === "clean" ? "clean" : mode === "images" ? "images" : "wall_masks";
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new Error(`Image not found in ${folder}/`));
+          image.src = `synthetic_floorplans/${folder}/${id}.${extension}`;
+        });
+      }
+
+      function transformAnnotationPoint(point, annotation) {
+        if (state.mode !== "images") return point;
+        let [x, y] = point;
+        const degradation = annotation.degradation || {};
+        const matrices = [degradation.rotation_matrix, degradation.perspective_matrix];
+
+        for (const matrix of matrices) {
+          if (!Array.isArray(matrix)) continue;
+          if (matrix.length === 2) {
+            [x, y] = [
+              matrix[0][0] * x + matrix[0][1] * y + matrix[0][2],
+              matrix[1][0] * x + matrix[1][1] * y + matrix[1][2],
+            ];
+          } else if (matrix.length === 3) {
+            const denominator = matrix[2][0] * x + matrix[2][1] * y + matrix[2][2];
+            if (denominator !== 0) {
+              [x, y] = [
+                (matrix[0][0] * x + matrix[0][1] * y + matrix[0][2]) / denominator,
+                (matrix[1][0] * x + matrix[1][1] * y + matrix[1][2]) / denominator,
+              ];
+            }
+          }
+        }
+        return [x, y];
+      }
+
+      function transformAnnotationBox(box, annotation) {
+        return [
+          [box[0], box[1]],
+          [box[2], box[1]],
+          [box[2], box[3]],
+          [box[0], box[3]],
+        ].map(point => transformAnnotationPoint(point, annotation));
+      }
+
+      function annotationBounds(points, annotation) {
+        const width = state.image?.naturalWidth || annotation.drawing_scale?.canvas_width || 0;
+        const height = state.image?.naturalHeight || annotation.drawing_scale?.canvas_height || 0;
+        const minX = Math.min(...points.map(point => point[0]));
+        const minY = Math.min(...points.map(point => point[1]));
+        const maxX = Math.max(...points.map(point => point[0]));
+        const maxY = Math.max(...points.map(point => point[1]));
+        if (maxX < 0 || maxY < 0 || minX > width || minY > height) return null;
+        return [
+          Math.max(0, minX),
+          Math.max(0, minY),
+          Math.min(width, maxX),
+          Math.min(height, maxY),
+        ];
+      }
+
+      function currentItems() {
+        const data = state.annotation;
+        if (!data) return [];
+        const items = [];
+        if (Array.isArray(data.building_outline)) {
+          items.push({ key: "building", id: "outline", kind: "Building outline", points: data.building_outline.map(point => transformAnnotationPoint(point, data)), color: "#263b34", label: "Building outline" });
+        }
+        for (const layer of layers) {
+          if (layer.key === "building") continue;
+          const entries = layer.key === "apartments" ? (data.apartments || []) : (data[layer.key] || []);
+          entries.forEach((entry, index) => {
+            const sourceBox = entry.bbox;
+            if (!Array.isArray(sourceBox) || sourceBox.length !== 4) return;
+            const points = transformAnnotationBox(sourceBox, data);
+            const box = annotationBounds(points, data);
+            if (!box) return;
+            const label = layer.key === "apartments"
+              ? `APT ${String(entry.apartment_id ?? index + 1).padStart(2, "0")}`
+              : layer.key === "rooms"
+                ? (entry.name || `Room ${index + 1}`)
+                : `${layer.label.slice(0, -1)} ${String(index + 1).padStart(2, "0")}`;
+            items.push({
+              key: layer.key,
+              id: `${layer.key}-${entry.room_id ?? entry.apartment_id ?? index}`,
+              kind: layer.label.slice(0, -1),
+              label,
+              color: layer.color,
+              bbox: box,
+              points,
+              data: entry,
+            });
+          });
+        }
+        return items;
+      }
+
+      function draw() {
+        if (!state.image) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(state.image, 0, 0, canvas.width, canvas.height);
+        state.items = currentItems();
+        for (const item of state.items) {
+          if (!state.activeLayers.has(item.key)) continue;
+          drawItem(item);
+        }
+        updateLayerCounts();
+        updateSelectionDetails();
+      }
+
+      function drawItem(item) {
+        const active = item.id === state.selected || item.id === state.hovered;
+        ctx.save();
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = active ? 4 : (item.key === "apartments" ? 2 : 2.5);
+        ctx.globalAlpha = item.key === "apartments" ? 0.65 : 0.92;
+        if (item.key === "apartments") ctx.setLineDash([12, 8]);
+        if (item.key === "building") {
+          ctx.setLineDash([10, 7]);
+          ctx.beginPath();
+          item.points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+          ctx.closePath();
+          ctx.stroke();
+        } else {
+          const [x1, y1, x2, y2] = item.bbox;
+          if (active) {
+            ctx.globalAlpha = 0.14;
+            ctx.fillStyle = item.color;
+            if (item.points) {
+              tracePoints(item.points);
+              ctx.fill();
+            } else {
+              ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            }
+            ctx.globalAlpha = 1;
+          }
+          if (item.points) {
+            tracePoints(item.points);
+            ctx.stroke();
+          } else {
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+          }
+          const roomNameVisible = item.key !== "rooms" || Boolean(item.data.name);
+          if (state.showLabels && (item.key === "apartments" || (item.key === "rooms" && roomNameVisible))) {
+            drawLabel(item, x1, y1, x2 - x1);
+          }
+        }
+        if (active && item.key === "building") {
+          const [x, y] = item.points[0];
+          drawCanvasLabel(item.label, x, y, item.color);
+        }
+        ctx.restore();
+      }
+
+      function drawLabel(item, x, y, boxWidth) {
+        const text = item.key === "rooms" ? item.data.name : item.label;
+        const fontSize = Math.max(12, Math.min(20, boxWidth * 0.045));
+        ctx.font = `600 ${fontSize}px 'Aptos', sans-serif`;
+        const clippedText = text.length > 23 ? `${text.slice(0, 21)}…` : text;
+        drawCanvasLabel(clippedText, x + 3, y + 3, item.color, fontSize);
+      }
+
+      function tracePoints(points) {
+        ctx.beginPath();
+        points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+        ctx.closePath();
+      }
+
+      function drawCanvasLabel(text, x, y, color, requestedSize = 14) {
+        const fontSize = Math.max(11, requestedSize);
+        ctx.font = `600 ${fontSize}px 'Aptos', sans-serif`;
+        const width = ctx.measureText(text).width + 12;
+        const height = fontSize + 8;
+        const labelY = Math.max(0, y - height);
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, labelY, width, height);
+        ctx.fillStyle = "#fff";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, x + 6, labelY + height / 2);
+      }
+
+      function updateLayerCounts() {
+        for (const layer of layers) {
+          const count = layer.key === "building"
+            ? (state.annotation?.building_outline ? 1 : 0)
+            : layer.key === "apartments"
+              ? (state.annotation?.apartments || []).length
+              : (state.annotation?.[layer.key] || []).length;
+          const element = document.querySelector(`[data-count="${layer.key}"]`);
+          if (element) element.textContent = String(count).padStart(2, "0");
+        }
+      }
+
+      function updateMetadata() {
+        const data = state.annotation;
+        const image = state.image;
+        const modeLabel = state.mode === "clean" ? "clean" : state.mode === "images" ? "scanned" : "wall mask";
+        document.getElementById("imageMeta").textContent = `${image.naturalWidth} × ${image.naturalHeight} px  ·  ${data.drawing_scale?.label || "scale n/a"}  ·  ${modeLabel}`;
+        document.getElementById("summary").innerHTML = `
+          <div><div class="stat-label">Apartments</div><div class="stat-value">${data.apartment_count ?? (data.apartments || []).length}</div></div>
+          <div><div class="stat-label">Rooms</div><div class="stat-value">${(data.rooms || []).length}</div></div>
+          <div><div class="stat-label">Building area</div><div class="stat-value">${Number.isFinite(data.building_area_m2) ? data.building_area_m2.toFixed(1) : "—"}<span style="font:11px 'Aptos',sans-serif"> m2</span></div></div>
+          <div><div class="stat-label">Outline</div><div class="stat-value" style="font-size:15px">${data.footprint_style || "—"}</div></div>`;
+        const wall = data.wall_style || {};
+        const exterior = data.exterior_wall_lengths || {};
+        document.getElementById("planInfo").innerHTML = `
+          <div><strong>Scale</strong> &nbsp;${data.drawing_scale?.label || "—"}</div>
+          <div><strong>Walls</strong> &nbsp;${wall.interior || "—"} / ${wall.exterior || "—"}</div>
+          <div><strong>Thickness</strong> &nbsp;${wall.interior_thickness ?? "—"} / ${wall.exterior_thickness ?? "—"} px</div>
+          <div><strong>Room area total</strong> &nbsp;${Number.isFinite(data.total_room_area_m2) ? data.total_room_area_m2.toFixed(1) : "—"} m2</div>
+          <div><strong>Interior wall length</strong> &nbsp;${Number.isFinite(data.interior_wall_length_m) ? data.interior_wall_length_m.toFixed(1) : "—"} m</div>
+          <div><strong>Exterior faces</strong> &nbsp;inner ${Number.isFinite(exterior.inner_side_m) ? exterior.inner_side_m.toFixed(1) : "—"} / outer ${Number.isFinite(exterior.outer_side_m) ? exterior.outer_side_m.toFixed(1) : "—"} m</div>
+          <div><strong>Doors / windows</strong> &nbsp;${(data.doors || []).length} / ${(data.windows || []).length}</div>
+          <div><strong>Shared access hall</strong> &nbsp;${(data.shared_access_halls || []).length ? `${data.shared_access_halls[0].area_m2.toFixed(1)} m2 / ${(data.access_doors || []).length} apartment doors` : "none"}</div>
+          <div><strong>Stairwell cores / core doors</strong> &nbsp;${(data.common_cores || []).length} / ${(data.core_doors || []).length}</div>
+          <div><strong>Entrances / porches</strong> &nbsp;${(data.entrances || []).length} / ${(data.porches || []).length}</div>
+          <div><strong>Balconies / ladders / stairs</strong> &nbsp;${(data.balconies || []).length} / ${(data.ladders || []).length} / ${(data.stairs || []).length}</div>`;
+        document.getElementById("currentName").textContent = sampleId(state.index);
+      }
+
+      function updateSelectionDetails() {
+        const target = state.items.find(item => item.id === state.selected);
+        const content = document.getElementById("selectionInfo");
+        if (!target) {
+          content.innerHTML = '<span class="empty-selection">Select a box in the drawing.</span>';
+          return;
+        }
+        const box = target.bbox;
+        const details = target.data || {};
+        const lines = [`<strong>${target.kind}</strong> · ${target.label}`];
+        if (details.apartment_id !== undefined) lines.push(`Apartment ${details.apartment_id + 1}`);
+        if (details.apartment_ids) lines.push(`Apartments ${details.apartment_ids.map(id => id + 1).join(", ")}`);
+        if (details.common_core_id !== undefined) lines.push(`Stairwell core ${details.common_core_id + 1}`);
+        if (details.room_id !== undefined) lines.push(`Room ID ${details.room_id}`);
+        if (details.measurements) {
+          const measurements = details.measurements;
+          lines.push(`Size: ${measurements.width_m.toFixed(1)} x ${measurements.height_m.toFixed(1)} m`);
+          lines.push(`Area: ${measurements.area_m2.toFixed(1)} m2`);
+        }
+        if (details.side) lines.push(`Side: ${details.side}`);
+        if (box) lines.push(`Box: ${box.join(", ")}`);
+        content.innerHTML = lines.join("<br>");
+      }
+
+      function updateToggleAllLabel() {
+        document.getElementById("toggleAll").textContent = state.activeLayers.size === layers.length ? "Hide all" : "Show all";
+      }
+
+      function resizeCanvas() {
+        if (!state.image) return;
+        canvas.width = state.image.naturalWidth;
+        canvas.height = state.image.naturalHeight;
+        if (state.fitted) fitCanvas();
+        else applyZoom();
+      }
+
+      function fitCanvas() {
+        if (!state.image) return;
+        const availableWidth = Math.max(100, stage.clientWidth - 54);
+        const availableHeight = Math.max(100, stage.clientHeight - 54);
+        state.zoom = Math.min(availableWidth / canvas.width, availableHeight / canvas.height, 1.2);
+        state.fitted = true;
+        applyZoom();
+      }
+
+      function applyZoom() {
+        canvas.style.width = `${Math.round(canvas.width * state.zoom)}px`;
+        canvas.style.height = `${Math.round(canvas.height * state.zoom)}px`;
+        document.getElementById("zoomReadout").textContent = state.fitted ? "Fit" : `${Math.round(state.zoom * 100)}%`;
+      }
+
+      function zoomBy(factor) {
+        state.fitted = false;
+        state.zoom = Math.max(0.15, Math.min(3, state.zoom * factor));
+        applyZoom();
+      }
+
+      function hitTest(x, y) {
+        return [...state.items].reverse().find(item => {
+          if (!state.activeLayers.has(item.key)) return false;
+          if (item.points) return pointInPolygon(x, y, item.points);
+          if (item.bbox) {
+            const [x1, y1, x2, y2] = item.bbox;
+            return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+          }
+          return false;
+        }) || null;
+      }
+
+      function pointInPolygon(x, y, points) {
+        let inside = false;
+        for (let index = 0, previous = points.length - 1; index < points.length; previous = index, index += 1) {
+          const [currentX, currentY] = points[index];
+          const [previousX, previousY] = points[previous];
+          const crosses = (currentY > y) !== (previousY > y)
+            && x < (previousX - currentX) * (y - currentY) / (previousY - currentY) + currentX;
+          if (crosses) inside = !inside;
+        }
+        return inside;
+      }
+
+      function onCanvasPointer(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.round((event.clientX - rect.left) * canvas.width / rect.width);
+        const y = Math.round((event.clientY - rect.top) * canvas.height / rect.height);
+        document.getElementById("coordinateText").textContent = `x ${x}  ·  y ${y}`;
+        const item = hitTest(x, y);
+        const nextId = item?.id || null;
+        if (nextId !== state.hovered) {
+          state.hovered = nextId;
+          draw();
+        }
+        if (item) {
+          tooltip.textContent = `${item.kind}: ${item.label}`;
+          tooltip.style.left = `${event.clientX + 13}px`;
+          tooltip.style.top = `${event.clientY + 13}px`;
+          tooltip.hidden = false;
+        } else {
+          tooltip.hidden = true;
+        }
+      }
+
+      canvas.addEventListener("pointermove", onCanvasPointer);
+      canvas.addEventListener("pointerleave", () => {
+        state.hovered = null;
+        tooltip.hidden = true;
+        draw();
+      });
+      canvas.addEventListener("click", event => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (event.clientX - rect.left) * canvas.width / rect.width;
+        const y = (event.clientY - rect.top) * canvas.height / rect.height;
+        state.selected = hitTest(x, y)?.id || null;
+        draw();
+      });
+
+      document.getElementById("previous").addEventListener("click", () => loadSample(state.index - 1));
+      document.getElementById("next").addEventListener("click", () => loadSample(state.index + 1));
+      sampleSelect.addEventListener("change", () => loadSample(Number(sampleSelect.value)));
+      document.getElementById("zoomIn").addEventListener("click", () => zoomBy(1.2));
+      document.getElementById("zoomOut").addEventListener("click", () => zoomBy(1 / 1.2));
+      document.getElementById("fit").addEventListener("click", fitCanvas);
+      document.getElementById("toggleAll").addEventListener("click", () => {
+        if (state.activeLayers.size === layers.length) state.activeLayers.clear();
+        else layers.forEach(layer => state.activeLayers.add(layer.key));
+        layerList.querySelectorAll("input[data-layer]").forEach(input => {
+          input.checked = state.activeLayers.has(input.dataset.layer);
+        });
+        updateToggleAllLabel();
+        draw();
+      });
+      document.querySelectorAll(".mode-button").forEach(button => {
+        button.addEventListener("click", async () => {
+          if (button.dataset.mode === state.mode) return;
+          state.mode = button.dataset.mode;
+          document.querySelectorAll(".mode-button").forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+          await loadSample(state.index);
+        });
+      });
+      window.addEventListener("keydown", event => {
+        if (event.target.matches("select, input, button")) return;
+        if (event.key === "ArrowLeft") loadSample(state.index - 1);
+        if (event.key === "ArrowRight") loadSample(state.index + 1);
+        if (event.key === "+" || event.key === "=") zoomBy(1.2);
+        if (event.key === "-") zoomBy(1 / 1.2);
+      });
+      window.addEventListener("resize", () => { if (state.fitted) fitCanvas(); });
+      new ResizeObserver(() => { if (state.fitted) fitCanvas(); }).observe(stage);
+
+      buildLayerControls();
+      updateToggleAllLabel();
+      loadSample(11);
+    })();
+  </script>
+</body>
+</html>
